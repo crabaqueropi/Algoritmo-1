@@ -1,0 +1,52 @@
+"""
+This is a template algorithm on Quantopian for you to adapt and fill in.
+"""
+import quantopian.algorithm as algo
+from quantopian.pipeline import Pipeline
+from quantopian.pipeline.data.builtin import USEquityPricing
+from quantopian.pipeline.filters import QTradableStocksUS
+import quantopian.optimize as opt
+
+
+def initialize(context):
+    """
+    Called once at the start of the algorithm.
+    """
+    context.assets = [sid(5061), sid(24), sid(39840)]
+    
+    algo.schedule_function(
+        rebalance,
+        algo.date_rules.week_start(),
+        algo.time_rules.market_open(hours=3),
+    )
+
+
+def rebalance(context, data):
+    """
+    Execute orders according to our schedule_function() timing.
+    """
+    price_history = data.history(context.assets, fields="price", bar_count=179, frequency="1m")
+    pct_change = price_history.iloc[[0, -1]].pct_change().iloc[1]
+    #log.info(pct_change)
+    constraints = []
+    obj={}
+    
+    if pct_change.iloc[0] > 0:
+        obj[context.assets[0]] = -0.3
+    else:
+        obj[context.assets[0]] = 0.3
+    
+    if pct_change.iloc[1] > 0:
+        obj[context.assets[1]] = -0.3
+    else:
+        obj[context.assets[1]] = 0.3
+    
+    if pct_change.iloc[2] > 0:
+        obj[context.assets[2]] = -0.4
+    else:
+        obj[context.assets[2]] = 0.4
+        
+    objective = opt.TargetWeights(obj)
+    
+    algo.order_optimal_portfolio(objective, constraints)
+    pass
